@@ -141,6 +141,60 @@ func (l *List) pop(left bool) ([]byte, error) {
 	return val, nil
 }
 
+// LBactchDelete ...
+func (l *List) LBatchDelete(dCount int64) error {
+	return l.batchDelete(dCount,true)
+}
+
+func (l *List) RBatchDelete(dCount int64) error {
+	return l.batchDelete(dCount,false)
+}
+
+func (l *List) batchDelete(dCount int64,left bool) error {
+	if dCount < 1  {
+		return errors.New("bad delete count")
+	}
+	x, y, err := l.rangeIndex()
+
+	if err != nil {
+		return err
+	}
+
+	size := y - x + 1
+	if size == 0 {
+		return nil
+	} else if size < 0 { // double check
+		return errors.New("bad list struct")
+	}
+
+	count := dCount
+	isClean := false
+
+	if size <= dCount {
+		count = size
+		isClean = true
+	}
+
+	return l.bucket.Update(func(b *bolt.Bucket) error {
+		for i := int64(0); i<count; i++ {
+			if left {
+				if err := b.Delete(l.indexKey(x + int64(i))); err != nil {
+					return err
+				}
+			} else {
+				if err := b.Delete(l.indexKey(y - int64(i))); err != nil {
+					return err
+				}
+			}
+		}
+		if isClean { // clean up
+			return b.Delete(l.rawKey())
+		}
+		return nil
+	})
+}
+
+
 // Len ...
 func (l *List) Len() (int64, error) {
 	x, y, err := l.rangeIndex()

@@ -60,5 +60,34 @@ func TestList(t *testing.T) {
 	ensure.Nil(t, err)
 	ensure.DeepEqual(t, size, int64(0))
 
+	// insert a, b, c, d
+	err = list.RPush([]byte("c"), []byte("d"))
+	ensure.Nil(t, err)
+	err = list.LPush([]byte("b"), []byte("a"))
+	ensure.Nil(t, err)
+
+	size, err = list.Len()
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, size, int64(4))
+
+	// test new LBatchDelete() and RBatchDelete()
+	list.LBatchDelete(2)
+	size, err = list.Len()
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, size, int64(2))
+
+	val, err = list.Index(0)
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, val, []byte("c"))
+
+	val, err = list.Index(1)
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, val, []byte("d"))
+
+	list.RBatchDelete(2)
+	size, err = list.Len()
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, size, int64(0))
+
 	scan(db.db, []byte("1"), t)
 }
